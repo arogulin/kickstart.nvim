@@ -364,6 +364,7 @@ do
 
   -- Useful plugin to show you pending keybinds.
   vim.pack.add { gh 'folke/which-key.nvim' }
+  ---@diagnostic disable-next-line: missing-fields
   require('which-key').setup {
     -- Delay between pressing a key and opening which-key (milliseconds)
     delay = 0,
@@ -389,6 +390,9 @@ do
     styles = {
       comments = { italic = false }, -- Disable italics in comments
     },
+    on_colors = function(colors)
+      colors.bg = "#000000"
+    end
   }
 
   -- Load the colorscheme here.
@@ -688,7 +692,7 @@ do
   local servers = {
     -- clangd = {},
     -- gopls = {},
-    -- pyright = {},
+    pyright = {},
     -- rust_analyzer = {},
     --
     -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -754,6 +758,7 @@ do
   local ensure_installed = vim.tbl_keys(servers or {})
   vim.list_extend(ensure_installed, {
     -- You can add other tools here that you want Mason to install
+    'debugpy',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -970,7 +975,7 @@ do
   -- NOTE: You can add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- require 'custom.plugins'
+  require 'custom.plugins'
 end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
