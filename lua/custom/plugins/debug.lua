@@ -4,8 +4,8 @@
 -- to this config's `vim.pack` setup (kickstart no longer uses lazy.nvim) and to
 -- Python via mason's debugpy.
 --
--- This file is symlinked into ~/.config/nvim/lua/custom/plugins/ and `require`d
--- by that directory's init.lua loader. Because the base config uses `vim.pack`
+-- This file lives in ~/.config/nvim/lua/custom/plugins/ and is `require`d by
+-- that directory's init.lua loader. Because the base config uses `vim.pack`
 -- rather than lazy.nvim, it installs and configures everything imperatively
 -- here instead of returning a lazy spec table.
 
@@ -53,6 +53,7 @@ require('which-key').add { { '<leader>d', group = '[D]ebug' } }
 -- Keymaps, all under the <leader>d prefix (from the guide).
 local function map(lhs, rhs, desc) vim.keymap.set('n', lhs, rhs, { desc = desc }) end
 map('<leader>dt', dap.toggle_breakpoint, 'Toggle Breakpoint')
+map('<leader>dT', function() dap.set_breakpoint(vim.fn.input 'Breakpoint condition: ') end, 'Conditional Breakpoint')
 map('<leader>dc', dap.continue, 'Continue')
 map('<leader>di', dap.step_into, 'Step Into')
 map('<leader>do', dap.step_over, 'Step Over')

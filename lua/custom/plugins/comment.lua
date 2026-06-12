@@ -4,7 +4,7 @@
 -- `gb`/`gbc` blockwise toggle, which wraps a region in a single `<!-- ... -->`
 -- instead of per-line comments.
 --
--- Symlinked into ~/.config/nvim/lua/custom/plugins/ and `require`d by that
+-- Lives in ~/.config/nvim/lua/custom/plugins/ and is `require`d by that
 -- directory's init.lua loader. Because the base config uses `vim.pack` rather
 -- than lazy.nvim, install and configure imperatively here instead of returning
 -- a lazy spec table.
