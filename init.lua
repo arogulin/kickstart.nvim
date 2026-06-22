@@ -211,6 +211,36 @@ do
 
   vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+  -- Give an unnamed buffer a temp `.json` name and set ft=json. jsonls only
+  -- validates buffers that have a filename (the file need not exist on disk),
+  -- so this is what makes live diagnostics work on a scratch paste. The name
+  -- must be set BEFORE the filetype, because the LSP attaches on FileType and
+  -- captures the buffer's URI at that moment.
+  local function make_json_buffer()
+    if vim.api.nvim_buf_get_name(0) == '' then vim.api.nvim_buf_set_name(0, vim.fn.tempname() .. '.json') end
+    vim.bo.filetype = 'json'
+  end
+
+  -- Pretty-print JSON via conform/jq. On a jq error (invalid JSON) conform
+  -- silently leaves the buffer untouched, so surface the parse error explicitly.
+  vim.keymap.set('n', '<leader>jq', function()
+    make_json_buffer()
+    require('conform').format({ async = true, lsp_format = 'never' }, function(err)
+      if err then
+        local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        local out = vim.system({ 'jq', '.' }, { stdin = table.concat(lines, '\n') }):wait()
+        vim.notify(vim.trim(out.stderr ~= '' and out.stderr or err), vim.log.levels.ERROR)
+      end
+    end)
+  end, { desc = 'Format as [J]SON with j[Q]' })
+
+  -- Open a fresh, correctly-named JSON scratch buffer: highlighting, jsonls
+  -- diagnostics, and <leader>jq formatting all work. Quit with :q! (no save).
+  vim.api.nvim_create_user_command('JsonScratch', function()
+    vim.cmd 'enew'
+    make_json_buffer()
+  end, { desc = 'Open a JSON scratch buffer with diagnostics enabled' })
+
   -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
   -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
   -- is not what someone will guess without a bit more experience.
@@ -707,6 +737,10 @@ do
       -- pyright provides hover; silence ruff's to avoid duplicate popups
       on_attach = function(client) client.server_capabilities.hoverProvider = false end,
     },
+    -- JSON: syntax/structure validation (missing comma, trailing comma, etc.)
+    -- shown as inline diagnostics. Attaches to json filetype, including scratch
+    -- buffers set via <leader>jq.
+    jsonls = {},
     -- rust_analyzer = {},
     --
     -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -773,6 +807,12 @@ do
   vim.list_extend(ensure_installed, {
     -- You can add other tools here that you want Mason to install
     'debugpy',
+    -- Java: jdtls (LSP) is started per-buffer by lua/custom/plugins/java.lua,
+    -- not via the `servers` table above, so it lives here. The debug adapter and
+    -- test bundles are loaded into jdtls (see that file), not as standalone DAP.
+    'jdtls',
+    'java-debug-adapter',
+    'java-test',
   })
 
   require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -810,6 +850,7 @@ do
     -- You can also specify external formatters in here.
     formatters_by_ft = {
       python = { 'ruff_organize_imports', 'ruff_format' },
+      json = { 'jq' },
       -- rust = { 'rustfmt' },
       -- Conform can also run multiple formatters sequentially
       -- python = { "isort", "black" },
@@ -918,7 +959,7 @@ do
   vim.pack.add { { src = gh 'nvim-treesitter/nvim-treesitter', version = 'main' } }
 
   -- Ensure basic parsers are installed
-  local parsers = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+  local parsers = { 'bash', 'c', 'diff', 'html', 'json', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
   require('nvim-treesitter').install(parsers)
 
   ---@param buf integer

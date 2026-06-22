@@ -36,6 +36,44 @@ dapui.setup()
 vim.fn.sign_define('DapBreakpoint', { text = '🐞' })
 vim.fn.sign_define('DapStopped', { text = '→', texthl = 'DiagnosticWarn', linehl = 'Visual' })
 
+-- When execution stops, jump to the source in a real code window — never into a
+-- dap-ui panel. nvim-dap's default `switchbuf = 'uselast'` falls back to the
+-- alternate window when focus is in a special buffer, but with several dap-ui
+-- panels open the alternate window is often itself a panel, so the stop cursor
+-- lands in e.g. "DAP Watches" (1 line) and errors with "Invalid cursor line:
+-- out of range". `switchbuf` accepts a function (bufnr, line, column) that
+-- nvim-dap calls to position the cursor; this one always picks an ordinary
+-- file window (buftype == ''), opening a split only if none exists.
+dap.defaults.fallback.switchbuf = function(bufnr, line, column)
+  local function pick_window()
+    local wins = vim.api.nvim_tabpage_list_wins(0)
+    -- 1. a window already showing the target source
+    for _, w in ipairs(wins) do
+      if vim.api.nvim_win_get_buf(w) == bufnr then return w end
+    end
+    -- 2. the current window, if it is an ordinary file window
+    local cur = vim.api.nvim_get_current_win()
+    if vim.bo[vim.api.nvim_win_get_buf(cur)].buftype == '' then return cur end
+    -- 3. any other ordinary file window (skips dap-ui panels / REPL)
+    for _, w in ipairs(wins) do
+      if vim.bo[vim.api.nvim_win_get_buf(w)].buftype == '' then return w end
+    end
+    return nil
+  end
+
+  local win = pick_window()
+  if not win then
+    -- Everything open is a panel: carve out a code window.
+    vim.cmd 'aboveleft split'
+    win = vim.api.nvim_get_current_win()
+  end
+  vim.api.nvim_win_set_buf(win, bufnr)
+  -- nvim-dap passes 1-based line and column (column already normalized to >= 1).
+  pcall(vim.api.nvim_win_set_cursor, win, { line, math.max(column - 1, 0) })
+  vim.api.nvim_set_current_win(win)
+  vim.api.nvim_win_call(win, function() vim.cmd 'normal! zv' end)
+end
+
 -- Open the UI when a session starts, close it when the session ends.
 dap.listeners.before.attach.dapui_config = function() dapui.open() end
 dap.listeners.before.launch.dapui_config = function() dapui.open() end
