@@ -86,7 +86,15 @@ vim.api.nvim_create_autocmd('FileType', {
     -- bundle (computing its classpath and runner); the generic <leader>d* maps
     -- in debug.lua then drive the running session (<leader>dc continue, etc.).
     local function map(lhs, rhs, desc) vim.keymap.set('n', lhs, rhs, { buffer = event.buf, desc = desc }) end
-    map('<leader>dn', jdtls.test_nearest_method, 'Debug Nearest test method')
-    map('<leader>dN', jdtls.test_class, 'Debug test Class')
+    -- Save all modified buffers before launching, since java-test compiles from
+    -- the on-disk file; an unsaved buffer would run stale code.
+    local function run(fn)
+      return function()
+        vim.cmd 'wall'
+        fn()
+      end
+    end
+    map('<leader>dn', run(jdtls.test_nearest_method), 'Debug Nearest test method')
+    map('<leader>dN', run(jdtls.test_class), 'Debug test Class')
   end,
 })
