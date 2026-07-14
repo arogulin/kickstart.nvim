@@ -19,7 +19,27 @@ require('neo-tree').setup {
     window = {
       mappings = {
         ['\\'] = 'close_window',
+        ['Y'] = 'copy_absolute_path',
+        ['gy'] = 'copy_relative_path',
+        ['yn'] = 'copy_filename',
       },
     },
+  },
+  commands = {
+    copy_absolute_path = function(state)
+      local path = state.tree:get_node():get_id()
+      vim.fn.setreg('+', path)
+      vim.notify('Copied: ' .. path)
+    end,
+    copy_relative_path = function(state)
+      local path = vim.fn.fnamemodify(state.tree:get_node():get_id(), ':.')
+      vim.fn.setreg('+', path)
+      vim.notify('Copied: ' .. path)
+    end,
+    copy_filename = function(state)
+      local name = state.tree:get_node().name
+      vim.fn.setreg('+', name)
+      vim.notify('Copied: ' .. name)
+    end,
   },
 }
